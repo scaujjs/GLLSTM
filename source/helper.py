@@ -6,22 +6,7 @@ from keras.layers import Lambda,merge,concatenate
 
 
 
-'''
 
-generateTrainingData is the first function you need call if you want to repeat my experiment
-It only needs to call once.
-It will generate a Numpy array store is resource fold whose shape is (7452,25,101,24)
- 
-7452 is the number of proteins. 25 is maxmium number of cysteines 
-which is setted by us. In keras, you need set a maximum length when use RNN.
-101 is the maximum number of residues in a sub-sequence(cysteine-centred region)
-101 and 25 is the maximum for local-LSTM and global-LSTM respectively
-24 is the number of features.
-0-19 is standardized PSSM
-20 and 21 is position information
-22 and 23 is  polarity and hydrophobicity
-
-'''
 def generateTrainingData():
     lengthOfSubseq = 101
     numOfCys = 25
@@ -29,7 +14,7 @@ def generateTrainingData():
     numOfInfo = 24
 
     def generateSubexample(seq, pssm, pairs):
-
+	##check Cys is reduced or not
         def checkInBonds(index):
             found = 0
             for p1, p2 in pairs:
@@ -110,6 +95,7 @@ def generateTrainingData():
     if os.path.exists('../MODEL/keras/'):
         pass
     else:
+	os.mkdir('../MODEL/')
         os.mkdir('../MODEL/keras/')
     np.save('../resource/GLBlstmTrain/X.data', X)
     np.save('../resource/GLBlstmTrain/T.data', T)
@@ -117,7 +103,7 @@ def generateTrainingData():
     print('finished')
 
 
-##genTrainForFinalModelBasedonProWithDistanceConnectivity()
+
 
 
 
