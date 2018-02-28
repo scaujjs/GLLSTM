@@ -11,7 +11,7 @@ contents in GLBLSTM
   3 models and 4 experiments are in GLBLSTM.py
   ## full connect model(traditional Feed-Forward back Propagation ANN)
   ## BLSTM
-  ##the novel model proposed in this study: GL-BLSTM
+  ## the novel model proposed in this study: GL-BLSTM
   
 
 dataset:
