@@ -38,9 +38,7 @@ def fullConnect(winSize,infoOfAA):
     model.add(Dense(100, input_shape=(winSize*infoOfAA,)))
     model.add(Dropout(0.2))
     model.add(Dense(2, activation='softmax'))
-    model.compile(optimizer='rmsprop',
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
+
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
     return model
 
@@ -92,7 +90,7 @@ def glblstm():
     output = TimeDistributed(Dense(2, activation='softmax'))(hiddenOfSEG)
     model = Model(input=[inputOfSeq], output=[output])
 
-    model.compile(optimizer='rmsprop',
+    model.compile(optimizer='adam',
                   loss={ 'time_distributed_1': 'binary_crossentropy'},
                   metrics=['acc'])
     return model
