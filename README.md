@@ -10,11 +10,11 @@ array format base on the dataset.
 ## contents in gl_blstm.py
   3 models and 4 experiments are in gl_blstm.py
 
-  full connect model(traditional Feed-Forward back Propagation ANN)
+  ---ANN (traditional Feed-Forward Back-Propagation ANN)
   
-  BLSTM
+  ---BLSTM
   
-  the novel model proposed in this study: GL-BLSTM
+  ---GL-BLSTM the novel model proposed in this study: 
   
 
 ## dataset:
