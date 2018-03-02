@@ -14,7 +14,7 @@ def generateTrainingData():
     numOfInfo = 24
 
     def generateSubexample(seq, pssm, pairs):
-	##check Cys is reduced or not
+
         def checkInBonds(index):
             found = 0
             for p1, p2 in pairs:
@@ -95,18 +95,11 @@ def generateTrainingData():
     if os.path.exists('../MODEL/keras/'):
         pass
     else:
-	os.mkdir('../MODEL/')
         os.mkdir('../MODEL/keras/')
     np.save('../resource/GLBlstmTrain/X.data', X)
     np.save('../resource/GLBlstmTrain/T.data', T)
 
     print('finished')
-
-
-
-
-
-
 
 
 dict_polarnorm = {'Q':-0.40766,'R':-0.45766,'H':0.14689,'M':0.50144,'A':-0.10311,'F':0.50144,
@@ -121,6 +114,7 @@ dict_Hydro={'T':-0.01124, 'V': 0.00685, 'R': -0.18437, 'C': 0.08695, 'P': -0.091
 
 ## this function read sequences and bonds file, and return two dictory.
 ## this function is used when generating data
+
 def loadSeqsAndBonds():
     listOfSeq=dict()
     listOfPairs=dict()
@@ -157,13 +151,7 @@ def acc_on_protein(y_true, y_pred):
     ##K.mean(resultOnprotein)
     return K.mean(resultOnprotein)
 
-
-'''
- because the shape of training data X is (7452, 25,101,24) which can be fed into GL-BSTM directly
- when u want to do experiment on BLSTM,you need reshape the X into shape(35921,101,24)
- 
-'''
-
+## reshape the traindata to meet requirement of BLSTM
 def convertTrainingData(Xs,Ts):
         example=list()
         for i in range(Xs.shape[0]):
