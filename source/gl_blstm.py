@@ -13,6 +13,7 @@ from keras.models import Sequential
 import numpy as np
 import random
 import os
+import tensorflow as tf
 from keras.callbacks import ModelCheckpoint
 from keras.models import Model
 from keras import optimizers
@@ -38,8 +39,7 @@ def fullConnect(winSize,infoOfAA):
     model.add(Dense(100, input_shape=(winSize*infoOfAA,)))
     model.add(Dropout(0.2))
     model.add(Dense(2, activation='softmax'))
-
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['acc'])
     return model
 
 def LocalBLSTM(winSize, infoOfAA):
@@ -51,7 +51,7 @@ def LocalBLSTM(winSize, infoOfAA):
                                  bias_regularizer=regularizers.l2(0.005), recurrent_dropout=0.2))(mask)
     output = Dense(2, activation='softmax')(hiddhen)
     model = Model(input=input, output=output)
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['acc'])
     return model
 
 def glblstm():
@@ -60,39 +60,38 @@ def glblstm():
     wins = 7
     CysNum = 25
     inputOfSeq = Input((CysNum, wins, InfoOfCys))
-    inputOfSeqList = helper.crop()(inputOfSeq)
+    listOfCysRegion = helper.crop()(inputOfSeq)
 
-    maskOfSeq = (Masking(mask_value=0, input_shape=(wins, InfoOfCys)))
+    maskingLayerForLocalRegion = (Masking(mask_value=0, input_shape=(wins, InfoOfCys)))
 
-    hiddhenSeq = Bidirectional(LSTM(hiddenUnit, activation='relu', kernel_initializer=initializers.glorot_normal()
+    localBLSTM = Bidirectional(LSTM(hiddenUnit, activation='relu', kernel_initializer=initializers.glorot_normal()
                                     , recurrent_initializer=initializers.glorot_normal()))
 
-    maskOfseqList = list()
-    for i in range(len(inputOfSeqList)):
-        maskOfseqList.append(maskOfSeq(inputOfSeqList[i]))
+    listOfCysRegionAfterMASK = list()
+    for i in range(len(listOfCysRegion)):
+        listOfCysRegionAfterMASK.append(maskingLayerForLocalRegion(listOfCysRegion[i]))
 
     hiddens = list()
-    for i in range(len(maskOfseqList)):
-        hiddens.append(Reshape(target_shape=(1, hiddenUnit * 2))(hiddhenSeq(maskOfseqList[i])))
+    for i in range(len(listOfCysRegionAfterMASK)):
+        hiddens.append(Reshape(target_shape=(1, hiddenUnit * 2))(localBLSTM(listOfCysRegionAfterMASK[i])))
 
-    for i in range(CysNum):
-        break
-        hiddens[i] = concatenate([hiddens[i], indexslist[i]], axis=2)
-    newInput = concatenate(hiddens, axis=1)
 
-    maskOfseg = (Masking(mask_value=0, input_shape=(CysNum, hiddenUnit * 2)))(newInput)
-    maskOfsegBB=BatchNormalization()(maskOfseg)
-    hiddenOfSEG = Bidirectional(
-        LSTM(hiddenUnit, return_sequences=1, dropout=0.2, recurrent_regularizer=regularizers.l2(0.005),
+    inputForGlobal = concatenate(hiddens, axis=1)
+
+    inputForGlobalAfterMask = (Masking(mask_value=0, input_shape=(CysNum, hiddenUnit * 2)))(inputForGlobal)
+    inputForGlobalAfterMaskAfterBn=BatchNormalization()(inputForGlobalAfterMask)
+
+    globalBLSTM = Bidirectional(
+        LSTM(hiddenUnit,activation='relu',return_sequences=1, dropout=0.2, recurrent_regularizer=regularizers.l2(0.005),
              kernel_regularizer=regularizers.l2(0.005),
-             bias_regularizer=regularizers.l2(0.005), recurrent_dropout=0.2))(maskOfsegBB)
+             bias_regularizer=regularizers.l2(0.005), recurrent_dropout=0.2))(inputForGlobalAfterMaskAfterBn)
 
-    output = TimeDistributed(Dense(2, activation='softmax'))(hiddenOfSEG)
+    output = TimeDistributed(Dense(2, activation='softmax'))(globalBLSTM)
     model = Model(input=[inputOfSeq], output=[output])
 
     model.compile(optimizer='adam',
                   loss={ 'time_distributed_1': 'binary_crossentropy'},
-                  metrics=['acc'])
+                  metrics=['acc',helper.acc_on_protein])
     return model
 
 
@@ -412,7 +411,7 @@ if 0:
             f.close()
 
 ## this block test the GL-LSTM network
-if 0:  #
+if 0:
     winSize = 7
     halfWin = winSize // 2
     nflod = 7
@@ -439,7 +438,7 @@ if 0:  #
 
         model = glblstm()
 
-        checkpoint = ModelCheckpoint(modelpath, monitor='val_acc', verbose=1, save_best_only=True,
+        checkpoint = ModelCheckpoint(modelpath, monitor='val_acc_on_protein', verbose=1, save_best_only=True,
                                      mode='max')
         callbacks_list = [checkpoint]
         if 1:
