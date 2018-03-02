@@ -143,6 +143,19 @@ def loadSeqsAndBonds():
     return(listOfSeq,listOfPairs)
 
 
+## this funtion will called in Metrics to evaluate the accuracy on protein level.
+def acc_on_protein(y_true, y_pred):
+
+    emptyPostion=tf.logical_not(K.cast(tf.reduce_sum(y_true,-1),tf.bool))
+
+    resultOnResidue=K.equal(K.argmax(y_true, axis=-1),
+            K.argmax(y_pred, axis=-1))
+    resultOnResidue=tf.logical_or(emptyPostion,resultOnResidue)
+
+    resultOnResidue=K.cast(resultOnResidue,tf.float32)
+    resultOnprotein=tf.reduce_prod(resultOnResidue,-1)
+    ##K.mean(resultOnprotein)
+    return K.mean(resultOnprotein)
 
 
 '''
