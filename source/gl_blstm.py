@@ -417,10 +417,12 @@ if 0:
     nflod = 7
     X = np.load('../resource/GLBlstmTrain/X.data.npy')
     T = np.load('../resource/GLBlstmTrain/T.data.npy')
+    
+    ## choose the window size 
     X = X[:, :, 50 - halfWin:51 + halfWin, :]
-    ##X=X[:,:,50-halfWin:51+halfWin,:]
-    for j in range(nflod):
 
+    for j in range(nflod):
+        ## path to save weights
         modelpath = '../MODEL/keras/globalONEHOT' + str(j)
 
         oneSplit = X.shape[0] // nflod
@@ -438,28 +440,28 @@ if 0:
 
         model = glblstm()
 
-        checkpoint = ModelCheckpoint(modelpath, monitor='val_acc_on_protein', verbose=1, save_best_only=True,
+        checkpoint = ModelCheckpoint(modelpath, monitor='val_acc', verbose=1, save_best_only=True,
                                      mode='max')
         callbacks_list = [checkpoint]
         if 1:
-            ##model.load_weights( modelpath)
-
+            ## train model 
             model.fit([Xtrain], [Ttrain], 128, validation_split=0.2, epochs=50
                       , verbose=2,
-                      callbacks=callbacks_list)  ##, callbacks=[EarlyStopping(patience=3)])callbacks=callbacks_list,
-        ##crightratio,rbondrightratio=test()##Xitrain Titrain
-        ## test part
+                      callbacks=callbacks_list)
+            
+        ## load the best weight
         model.load_weights(modelpath)
-        pr_t = model.predict([Xtest])  ##Xitest pr_ti
+        pr_t = model.predict([Xtest])
 
 
         if 1:
             result = (helper.evaluateResult(Ttest, pr_t))
             print('GL-LSTM one hot: ' + str(result))
             f = open('../resource/glonehot', 'a')
+            ## save the raw accuracy 
             f.writelines("GL onehot: split: " + str(j) + str(result) + '\n')
             result = helper.adjustEvaluateResult(Ttest, pr_t)
+            ## save the accuracy after 'force to even regulator'
             f.writelines("GL onehot: split: " + str(j) + str(result) + '\n')
             f.close()
-            ##assert 0
 
