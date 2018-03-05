@@ -2,8 +2,8 @@ import numpy as np
 import random
 import os
 from keras.layers import Lambda,merge,concatenate
-
-
+import tensorflow as tf
+from keras import backend as K
 
 
 
