@@ -19,7 +19,7 @@ from keras import optimizers
 import gc
 
 
-nflod=7
+nflod=10
 
 
 
@@ -65,10 +65,9 @@ def LocalBLSTM(winSize, infoOfAA):
     return model
 
 
-def glblstm():
+def glblstm(wins):
     InfoOfCys = 24
     hiddenUnit = 30
-    wins = 7
     CysNum = 25
     inputOfSeq = Input((CysNum, wins, InfoOfCys))
     listOfCysRegion = helper.crop()(inputOfSeq)
@@ -334,9 +333,9 @@ if 0:
 if 0:
     X = np.load('../resource/GLBlstmTrain/X.data.npy')
     T = np.load('../resource/GLBlstmTrain/T.data.npy')
-    for iWinSize in range(34):
+    for iWinSize in range(16):
         gc.collect()
-        windowsize=2*iWinSize+5
+        windowsize=6*iWinSize+7
         halfWin=windowsize//2
         Xi=X[:,:,50-halfWin:51+halfWin,:]
         Ti=T
@@ -379,11 +378,11 @@ if 0:
 ## this block find the best window size of local LSTM
 ## window size automatically varies from 5 to 71
 ## results will be wroted into resource/resultOfFindBestWindowsize
-if 0:
+if 1:
     X = np.load('../resource/GLBlstmTrain/X.data.npy')
     T = np.load('../resource/GLBlstmTrain/T.data.npy')
-    for iWinSize in range(34):
-        windowsize=6*iWinSize+5
+    for iWinSize in range(16):
+        windowsize=6*iWinSize+67
         halfWin=windowsize//2
         Xi=X[:,:,50-halfWin:51+halfWin,:]
         Ti=T
@@ -428,55 +427,62 @@ if 0:
 ## this block test the GL-LSTM network
 ##
 if 0:
-    winSize = 7
-    halfWin = winSize // 2
-    nflod = 7
-    X = np.load('../resource/GLBlstmTrain/X.data.npy')
+
+
+    Xall = np.load('../resource/GLBlstmTrain/X.data.npy')
     T = np.load('../resource/GLBlstmTrain/T.data.npy')
+    for iWinSize in range(15):
+        windowsize =3+2*iWinSize
+        halfWin = windowsize // 2
+        ## choose the window size
+        X = Xall[:, :, 50 - halfWin:51 + halfWin, :]
 
-    ## choose the window size
-    X = X[:, :, 50 - halfWin:51 + halfWin, :]
+        for j in range(nflod):
+            ## path to save weights
+            modelpath = '../MODEL/keras/globalONEHOT' + str(j)
 
-    for j in range(nflod):
-        ## path to save weights
-        modelpath = '../MODEL/keras/globalONEHOT' + str(j)
+            oneSplit = X.shape[0] // nflod
+            Xtest = X[j * oneSplit:(j + 1) * oneSplit]
+            Ttest = T[j * oneSplit:(j + 1) * oneSplit]
 
-        oneSplit = X.shape[0] // nflod
-        Xtest = X[j * oneSplit:(j + 1) * oneSplit]
-        Ttest = T[j * oneSplit:(j + 1) * oneSplit]
+            Xtrain = np.zeros((X.shape[0] - oneSplit, X.shape[1], X.shape[2], X.shape[3]), np.float32)
+            Ttrain = np.zeros((T.shape[0] - oneSplit, T.shape[1], T.shape[2]), np.float32)
 
-        Xtrain = np.zeros((X.shape[0] - oneSplit, X.shape[1], X.shape[2], X.shape[3]), np.float32)
-        Ttrain = np.zeros((T.shape[0] - oneSplit, T.shape[1], T.shape[2]), np.float32)
+            Xtrain[:j * oneSplit] = X[:j * oneSplit]
+            Xtrain[(j) * oneSplit:] = X[(j + 1) * oneSplit:]
+            Ttrain[:j * oneSplit] = T[:j * oneSplit]
+            Ttrain[(j) * oneSplit:] = T[(j + 1) * oneSplit:]
+            K.clear_session()
 
-        Xtrain[:j * oneSplit] = X[:j * oneSplit]
-        Xtrain[(j) * oneSplit:] = X[(j + 1) * oneSplit:]
-        Ttrain[:j * oneSplit] = T[:j * oneSplit]
-        Ttrain[(j) * oneSplit:] = T[(j + 1) * oneSplit:]
-        K.clear_session()
+            model = glblstm(windowsize)
 
-        model = glblstm()
+            checkpoint = ModelCheckpoint(modelpath, monitor='val_acc', verbose=1, save_best_only=True,
+                                         mode='max')
+            callbacks_list = [checkpoint]
+            if 1:
+                ## train model
+                model.fit([Xtrain], [Ttrain], 128, validation_split=0.2, epochs=50
+                          , verbose=2,
+                          callbacks=callbacks_list)
 
-        checkpoint = ModelCheckpoint(modelpath, monitor='val_acc', verbose=1, save_best_only=True,
-                                     mode='max')
-        callbacks_list = [checkpoint]
-        if 1:
-            ## train model
-            model.fit([Xtrain], [Ttrain], 128, validation_split=0.2, epochs=50
-                      , verbose=2,
-                      callbacks=callbacks_list)
-
-        ## load the best weight
-        model.load_weights(modelpath)
-        pr_t = model.predict([Xtest])
+            ## load the best weight
+            model.load_weights(modelpath)
+            pr_t = model.predict([Xtest])
 
 
-        if 1:
-            result = (helper.evaluateResult(Ttest, pr_t))
-            print('GL-LSTM: ' + str(result))
-            f = open('../resource/gl_result', 'a')
-            ## save the raw accuracy
-            f.writelines("GL before force to even : split: " + str(j) + str(result) + '\n')
-            result = helper.adjustEvaluateResult(Ttest, pr_t)
-            ## save the accuracy after 'force to even regulator'
-            f.writelines("GL after force to even : split: " + str(j) + str(result) + '\n')
-            f.close()
+            if 1:
+                result = (helper.evaluateResult(Ttest, pr_t))
+                result = helper.adjustEvaluateResult(Ttest, pr_t)
+                print('windowSize: ' + str(windowsize) + ', flod: ' + str(j))
+                print('GL-LSTM: ' + str(result))
+                f = open('../resource/gl_result', 'a')
+                f.writelines(str(windowsize) + ' split ' + str(j) + str(result) + '\n')
+                f.close()
+
+                if 0:
+                    ## save the raw accuracy
+                    f.writelines("GL before force to even : split: " + str(j) + str(result) + '\n')
+                    result = helper.adjustEvaluateResult(Ttest, pr_t)
+                    ## save the accuracy after 'force to even regulator'
+                    f.writelines("GL after force to even : split: " + str(j) + str(result) + '\n')
+
