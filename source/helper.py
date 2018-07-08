@@ -319,3 +319,42 @@ def adjustEvaluateResult(T_t,P_t):
     totalNumOfPro=P_t.shape[0]
 
     return ( accOnCys, accOnPro,sensitivity, specifity, mcc,totalNumOfPro,totalCys)
+
+
+def mean(file):
+    nflod=10
+    history=list()
+    for line in open(file):
+        part_1,part_2=line.split("(")
+        part_1_item=part_1.split(" ")
+        part_2=part_2.replace(")",'')
+        part_2_item=part_2.split(',')
+        window_size=int(part_1_item[0].strip())
+        split_num=int(part_1_item[2].strip())
+        inform=list()
+        for item in part_2_item:
+            item_float=float(item.strip())
+            inform.append(item_float)
+        history.append((window_size,split_num,inform))
+
+    f=open('../resource/gl_result_csv','w')
+
+
+    for i in range(len(history)//nflod):
+        mean_info=list()
+        for k in range(5):
+            mean_info.append(0)
+        for j in range(nflod):
+            for k in range(5):
+                mean_info[k]+=history[i*nflod+j][2][k]
+        for k in range(5):
+            mean_info[k]= mean_info[k]/nflod
+        print(mean_info)
+        line=''
+        for k in range(5):
+            line=line+str(mean_info[k])+' '
+        line=line+'\n'
+        f.write(line)
+    f.close()
+
+
